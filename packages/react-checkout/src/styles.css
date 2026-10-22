@@ -1,0 +1,6 @@
+/* TODO(студент): заменить на Shadow DOM или префикс .react-checkout,
+   чтобы стили не протекали в Angular-оболочку */
+.react-checkout { padding: 16px; border: 2px dashed #06c; font-family: system-ui, sans-serif; }
+.react-checkout .errors { color: #c00; }
+.react-checkout .actions { display: flex; gap: 8px; margin-top: 12px; }
+.react-checkout .total { font-weight: 600; }

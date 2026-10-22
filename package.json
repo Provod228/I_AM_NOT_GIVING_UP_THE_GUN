@@ -1,0 +1,15 @@
+{
+  "name": "market-checkout",
+  "private": true,
+  "workspaces": ["packages/*", "mock-server"],
+  "scripts": {
+    "dev:mock": "npm -w mock-server run dev",
+    "dev:angular": "npm -w angular-shell run start",
+    "dev:react": "npm -w react-checkout run dev",
+    "build:react": "npm -w react-checkout run build",
+    "build:angular": "npm -w angular-shell run build"
+  },
+  "devDependencies": {
+    "typescript": "~5.4.5"
+  }
+}
