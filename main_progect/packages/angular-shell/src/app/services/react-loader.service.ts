@@ -11,7 +11,8 @@ export class ReactLoaderService {
 
     load(): Promise<ReactCheckoutModule> {
         if (!this.loading) {
-            this.loading = import(/* @vite-ignore */ '/react-checkout/react-checkout.js')
+            const url = '/react-checkout/react-checkout.js'
+            this.loading = import(/* @vite-ignore */ url)
                 .then((m: ReactCheckoutModule) => m)
                 .catch((err) => {
                     // TODO(студент): залогировать инцидент через analytics.track('react_chunk_load_error')

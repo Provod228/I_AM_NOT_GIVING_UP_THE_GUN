@@ -1,5 +1,5 @@
 {
-  "name": "market-checkout",
+  "name": "main_project",
   "private": true,
   "workspaces": ["packages/*", "mock-server"],
   "scripts": {
