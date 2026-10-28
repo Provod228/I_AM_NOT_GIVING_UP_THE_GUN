@@ -5,7 +5,7 @@ import { NgIf } from '@angular/common';
 import { FlagsService } from '../services/flags.service';
 import { ReactLoaderService, type ReactCheckoutHandle } from '../services/react-loader.service';
 import { CheckoutAngularComponent } from '../checkout-angular/checkout-angular.component';
-import { track, initAnalytics, draftStore, type Draft } from '@market/checkout-core';
+import { api, track, initAnalytics, draftStore, type Draft } from '@market/checkout-core';
 
 @Component({
     selector: 'app-checkout-host',
@@ -75,6 +75,7 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
     onDraftChange(d: Draft) {
         this.draft.set(d);
         draftStore.saveLocal(d);
+        api.saveDraft(d, `${d.draftId}-${d.updatedAt}`).catch(() => {});
     }
 
     private async mountReact(userId: string) {

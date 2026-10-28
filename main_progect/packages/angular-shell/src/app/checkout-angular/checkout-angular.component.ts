@@ -1,6 +1,14 @@
 import {ChangeDetectionStrategy, Component, Input, Output, EventEmitter, signal} from '@angular/core';
 import {CurrencyPipe, NgIf, NgFor} from '@angular/common';
-import {api, calcGrandTotal, DELIVERY_OPTIONS, validateAddress, type Draft, type Address} from '@market/checkout-core';
+import {
+    api,
+    calcGrandTotal,
+    DELIVERY_OPTIONS,
+    validateAddress,
+    type Draft,
+    type Address,
+    track
+} from '@market/checkout-core';
 
 
 @Component({
@@ -47,7 +55,9 @@ import {api, calcGrandTotal, DELIVERY_OPTIONS, validateAddress, type Draft, type
             <p class="errors" *ngIf="errors().length">
                 <span *ngFor="let e of errors()">{{ e }}<br/></span>
             </p>
-            <button [disabled]="errors().length > 0" (click)="onSubmit()">Оформить заказ</button>
+            <button [disabled]="errors().length > 0 || submitting()" (click)="onSubmit()">
+                {{ submitting() ? 'Отправляем…' : 'Оформить заказ' }}
+            </button>
             <p *ngIf="orderId()">Заказ {{ orderId() }} оформлен!</p>
             <p class="errors" *ngIf="submitError()">{{ submitError() }}</p>
         </div>
@@ -73,6 +83,7 @@ export class CheckoutAngularComponent {
     readonly deliveryOptions = DELIVERY_OPTIONS;
     readonly orderId = signal<string | null>(null);
     readonly submitError = signal<string | null>(null);
+    readonly submitting = signal(false);
 
     total(): number {
         if (!this.draft) return 0;
@@ -96,8 +107,13 @@ export class CheckoutAngularComponent {
         const value = (e.target as HTMLInputElement).value;
         const current = this.draft.address ?? {country: '', city: '', street: '', zip: ''};
         const next = {...this.draft, address: {...current, [field]: value}, updatedAt: Date.now()};
+
+        const wasValid = validateAddress(this.draft.address).length === 0;
+        const isValid = validateAddress(next.address).length === 0;
+
         this.draft = next;
         this.draftChange.emit(next);
+        if (!wasValid && isValid) track('checkout_step_completed', { step: 'address' });
     }
 
     onDelivery(id: Draft['deliveryMethod']) {
@@ -105,17 +121,23 @@ export class CheckoutAngularComponent {
         const next = {...this.draft, deliveryMethod: id, updatedAt: Date.now()};
         this.draft = next;
         this.draftChange.emit(next);
+        track('checkout_step_completed', { step: 'delivery' });
     }
 
     async onSubmit() {
-        if (!this.draft) return;
+        if (!this.draft || this.submitting()) return;   // ← изменено
+        this.submitting.set(true);                      // ← добавлено
         this.submitError.set(null);
         try {
-            const key = crypto.randomUUID();
+            const key = `order-${this.draft.draftId}-${this.draft.updatedAt}`;
             const { orderId } = await api.submitOrder(this.draft.draftId, key);
             this.orderId.set(orderId);
+            track('checkout_converted', { orderId });
         } catch {
             this.submitError.set('Не удалось оформить заказ, попробуйте ещё раз');
+            track('checkout_error', { reason: 'submit_failed' });
+        } finally {                                     // ← добавлено
+            this.submitting.set(false);
         }
     }
 }
