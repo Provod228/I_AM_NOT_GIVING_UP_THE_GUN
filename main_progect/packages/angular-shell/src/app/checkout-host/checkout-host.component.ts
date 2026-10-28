@@ -15,7 +15,7 @@ import { track, initAnalytics, draftStore, type Draft } from '@market/checkout-c
     template: `
     <section class="checkout-host">
       <div *ngIf="loading()" class="checkout-loading">Загружаем оформление…</div>
-      <app-checkout-angular *ngIf="renderAngular()" [draft]="draft()" />
+        <app-checkout-angular *ngIf="renderAngular()" [draft]="draft()" (draftChange)="onDraftChange($event)" />
       <div #reactRoot *ngIf="renderReact()"></div>
     </section>
   `,
@@ -44,7 +44,22 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
 
         const local = draftStore.loadLocal();
         const remote = local ? await draftStore.loadRemote(local.draftId) : null;
-        this.draft.set(draftStore.pickLatest(local, remote));
+        let initial = draftStore.pickLatest(local, remote);
+        if (!initial) {
+            initial = {
+                draftId: crypto.randomUUID(),
+                userId: userId,
+                items: [
+                    { id: 'p1', title: 'Наушники', price: 1500, qty: 1 },
+                ],
+                address: null,
+                deliveryMethod: null,
+                promoCode: null,
+                updatedAt: Date.now(),
+            };
+            draftStore.saveLocal(initial);
+        }
+        this.draft.set(initial);
 
         const variant = this.flags.variant();
         track('checkout_rendered', { variant, render_ms: performance.now() });
@@ -57,6 +72,11 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
         }
     }
 
+    onDraftChange(d: Draft) {
+        this.draft.set(d);
+        draftStore.saveLocal(d);
+    }
+
     private async mountReact(userId: string) {
         try {
             const mod = await this.loader.load();
@@ -67,7 +87,7 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
             this.handle = mod.mount(el, {
                 userId,
                 draft: this.draft(),
-                onDraftChange: (d: Draft) => { this.draft.set(d); draftStore.saveLocal(d); },
+                onDraftChange: (d: Draft) => this.onDraftChange(d),
             });
             this.renderReact.set(true);
             this.loading.set(false);
