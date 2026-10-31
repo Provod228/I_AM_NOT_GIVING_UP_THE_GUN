@@ -1,11 +1,11 @@
 import {
     ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal,
 } from '@angular/core';
-import { NgIf } from '@angular/common';
-import { FlagsService } from '../services/flags.service';
-import { ReactLoaderService, type ReactCheckoutHandle } from '../services/react-loader.service';
-import { CheckoutAngularComponent } from '../checkout-angular/checkout-angular.component';
-import { api, track, initAnalytics, draftStore, type Draft } from '@market/checkout-core';
+import {NgIf} from '@angular/common';
+import {FlagsService} from '../services/flags.service';
+import {ReactLoaderService, type ReactCheckoutHandle} from '../services/react-loader.service';
+import {CheckoutAngularComponent} from '../checkout-angular/checkout-angular.component';
+import {api, track, initAnalytics, draftStore, type Draft} from '@market/checkout-core';
 
 @Component({
     selector: 'app-checkout-host',
@@ -13,22 +13,28 @@ import { api, track, initAnalytics, draftStore, type Draft } from '@market/check
     imports: [NgIf, CheckoutAngularComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-    <section class="checkout-host">
-      <div *ngIf="loading()" class="checkout-loading">Загружаем оформление…</div>
-        <app-checkout-angular *ngIf="renderAngular()" [draft]="draft()" (draftChange)="onDraftChange($event)" />
-      <div #reactRoot *ngIf="renderReact()"></div>
-    </section>
-  `,
+        <section class="checkout-host">
+            <div *ngIf="loading()" class="checkout-loading">Загружаем оформление…</div>
+            <app-checkout-angular *ngIf="renderAngular()" [draft]="draft()" (draftChange)="onDraftChange($event)"/>
+            <div #reactRoot [hidden]="!renderReact()"></div>
+        </section>
+    `,
     styles: [`
-    .checkout-host { display: block; }
-    .checkout-loading { padding: 24px; text-align: center; }
-  `],
+        .checkout-host {
+            display: block;
+        }
+
+        .checkout-loading {
+            padding: 24px;
+            text-align: center;
+        }
+    `],
 })
 export class CheckoutHostComponent implements OnInit, OnDestroy {
     private readonly flags = inject(FlagsService);
     private readonly loader = inject(ReactLoaderService);
 
-    @ViewChild('reactRoot') reactRoot?: ElementRef<HTMLElement>;
+    @ViewChild('reactRoot', { static: true }) reactRoot?: ElementRef<HTMLElement>;
 
     readonly loading = signal(true);
     readonly renderAngular = signal(false);
@@ -50,7 +56,7 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
                 draftId: crypto.randomUUID(),
                 userId: userId,
                 items: [
-                    { id: 'p1', title: 'Наушники', price: 1500, qty: 1 },
+                    {id: 'p1', title: 'Наушники', price: 1500, qty: 1},
                 ],
                 address: null,
                 deliveryMethod: null,
@@ -62,7 +68,7 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
         this.draft.set(initial);
 
         const variant = this.flags.variant();
-        track('checkout_rendered', { variant, render_ms: performance.now() });
+        track('checkout_rendered', {variant, render_ms: performance.now()});
 
         if (variant === 'react') {
             await this.mountReact(userId);
@@ -75,7 +81,8 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
     onDraftChange(d: Draft) {
         this.draft.set(d);
         draftStore.saveLocal(d);
-        api.saveDraft(d, `${d.draftId}-${d.updatedAt}`).catch(() => {});
+        api.saveDraft(d, `${d.draftId}-${d.updatedAt}`).catch(() => {
+        });
     }
 
     private async mountReact(userId: string) {
@@ -94,7 +101,7 @@ export class CheckoutHostComponent implements OnInit, OnDestroy {
             this.loading.set(false);
         } catch (e) {
             console.error('[checkout] react mount failed, falling back to angular', e);
-            track('checkout_error', { variant: 'react', reason: 'mount_failed' });
+            track('checkout_error', {variant: 'react', reason: 'mount_failed'});
             this.renderReact.set(false);
             this.renderAngular.set(true);
             this.loading.set(false);
